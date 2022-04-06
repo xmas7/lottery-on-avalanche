@@ -1,0 +1,46 @@
+{
+  "name": "lottery-on-avalanche",
+  "version": "1.0.0",
+  "description": "Lottery contract on avalanche",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx hardhat compile",
+    "deploy:mockERC20": "npx hardhat run deploy/mockERC20.ts --network avalancheTest",
+    "deploy:lottery": "npx hardhat run deploy/lottery.ts --network avalancheTest",
+    "verify:network": "hardhat verify --network",
+    "test": "npx hardhat test --network hardhat",
+    "test:Lottery": "npx hardhat test ./test/Lottery.js --network hardhat",
+    "flatten": "hardhat flatten"
+  },
+  "keywords": [
+    "lottery",
+    "erc20"
+  ],
+  "author": "Daiki Saito",
+  "license": "ISC",
+  "dependencies": {
+    "@chainlink/contracts": "^0.4.0",
+    "@nomiclabs/hardhat-etherscan": "^2.1.7",
+    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts-upgradeable": "^4.5.1",
+    "@openzeppelin/hardhat-upgrades": "^1.9.0",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "@types/chai": "^4.2.21",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^17.0.13",
+    "dotenv-extended": "^2.9.0",
+    "hardhat": "^2.5.0",
+    "hardhat-deploy": "^0.8.11",
+    "prettier-plugin-solidity": "^1.0.0-beta.17",
+    "ts-node": "^10.1.0",
+    "tslog": "^3.2.0"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.0",
+    "chai": "^4.2.0",
+    "ethereum-waffle": "^3.0.0",
+    "ethers": "^5.0.0",
+    "hardhat-contract-sizer": "^2.3.0"
+  }
+}
