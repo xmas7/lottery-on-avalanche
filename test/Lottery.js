@@ -19,7 +19,7 @@ describe('Lottery contract test:', () => {
   let lotteryRewardAmounts;
 
   before(async () => {
-    [owner, account1, account2, account3, treasury] = await ethers.getSigners();
+    [owner, account1, account2, account3, treasury, rewardDistributor] = await ethers.getSigners();
 
     // prepare mock erc20 token contract
     payTokenFactory = await ethers.getContractFactory('MockERC20');
@@ -44,6 +44,7 @@ describe('Lottery contract test:', () => {
       lotteryPayTokenAddr, // payToken address
       lotteryPayTokenMinAmount, // 100 minAmount of payToken
       treasury.address, // treasury address
+      rewardDistributor.address, // rewardDistributor address
       lotteryRewardAmounts // array of reward amounts
     );
 
@@ -51,13 +52,14 @@ describe('Lottery contract test:', () => {
     await payToken.connect(account1).mint("100000000000000000000000");
     await payToken.connect(account2).mint("100000000000000000000000");
     await payToken.connect(account3).mint("100000000000000000000000");
+    await payToken.connect(rewardDistributor).mint("100000000000000000000000");
 
     // approve payToken for lottery contract
     await payToken.connect(owner).approve(lottery.address, "100000000000000000000000000000000");
     await payToken.connect(account1).approve(lottery.address, "100000000000000000000000000000000");
     await payToken.connect(account2).approve(lottery.address, "100000000000000000000000000000000");
     await payToken.connect(account3).approve(lottery.address, "100000000000000000000000000000000");
-    await payToken.connect(treasury).approve(lottery.address, "100000000000000000000000000000000");
+    await payToken.connect(rewardDistributor).approve(lottery.address, "100000000000000000000000000000000");
   });
 
   describe('constructor function test', () => {
@@ -209,9 +211,9 @@ describe('Lottery contract test:', () => {
       // account3 balance check
       if (account3.address == winners[0]) {
         expect(account3PayTokenBalAfter.sub(account3PayTokenBalBefore)).to.be.equal(ethers.utils.parseEther("50"));
-      } else if (account2.address == winners[1]) {
+      } else if (account3.address == winners[1]) {
         expect(account3PayTokenBalAfter.sub(account3PayTokenBalBefore)).to.be.equal(ethers.utils.parseEther("30"));
-      } else if (account2.address == winners[2]) {
+      } else if (account3.address == winners[2]) {
         expect(account3PayTokenBalAfter.sub(account3PayTokenBalBefore)).to.be.equal(ethers.utils.parseEther("20"));
       }
 
@@ -244,6 +246,19 @@ describe('Lottery contract test:', () => {
       // execute transaction
       await lottery.connect(owner).changeTreasury(treasury.address);
       expect(await lottery.treasury()).to.be.equal(treasury.address);
+    });
+  });
+
+  describe('changeRewardDistributor function test', () => {
+    it('should be reverted when caller is not the owner', async () => {
+      // execute transaction
+      await expect(lottery.connect(account1).changeRewardDistributor(rewardDistributor.address)).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it('should be succeeded when caller is the owner', async () => {
+      // execute transaction
+      await lottery.connect(owner).changeRewardDistributor(rewardDistributor.address);
+      expect(await lottery.rewardDistributor()).to.be.equal(rewardDistributor.address);
     });
   });
 });
