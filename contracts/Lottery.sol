@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Lottery is Ownable {
+contract Lottery is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     enum LOTTERY_STATE {
@@ -17,14 +17,14 @@ contract Lottery is Ownable {
 
     struct LotteryInfo {
         address[] players;
-        address winner;
         address creator;
+        address[] winners;
         LOTTERY_STATE status;
     }
 
     address public payToken;
     uint256 public minAmount;
-
+    uint256[] public rewardAmounts;
     address public treasury;
 
     /// @dev current active lottery id
@@ -32,6 +32,9 @@ contract Lottery is Ownable {
 
     /// @dev lottery id => Lottry info
     mapping(uint256 => LotteryInfo) public lotteries;
+
+    /// @dev lottery id => user index => status
+    mapping(uint256 => mapping(uint256 => bool)) _winnerSelected;
 
     event LotteryCreated(
         address indexed creator,
@@ -54,16 +57,22 @@ contract Lottery is Ownable {
     /// @param _payToken address of pay token
     /// @param _minAmount minimum amount of pay token
     /// @param _treasury address of treasury
+    /// @param _rewardAmounts array of reward amount for 1st, 2nd and 3rd winners
     constructor(
         address _payToken,
         uint256 _minAmount,
-        address _treasury
+        address _treasury,
+        uint256[] memory _rewardAmounts
     ) {
         require(_payToken != address(0), "Error: payToken address is zero");
         require(_treasury != address(0), "Error: treasury address is zero");
+        require(_rewardAmounts.length == 3, "Error: winners are only 3");
+
         payToken = _payToken;
         minAmount = _minAmount;
         treasury = _treasury;
+        rewardAmounts = _rewardAmounts;
+
         currentLotteryId = 0;
     }
 
@@ -115,40 +124,16 @@ contract Lottery is Ownable {
 
     /// @dev End lottery and choose winner by only owner
     /// @param _lotteryId lottery id
-    function endLottery(uint256 _lotteryId) public onlyOwner {
+    function endLottery(uint256 _lotteryId) public onlyOwner nonReentrant {
         address[] memory lotteryPlayers = lotteries[_lotteryId].players;
 
         require(
             lotteries[_lotteryId].status == LOTTERY_STATE.ACTIVE,
             "Lottery is not active"
         );
-        require(lotteryPlayers.length > 0, "No lottery participants");
+        require(lotteryPlayers.length > 2, "Error: less than 3 participants");
 
-        // get random number
-        uint256 randomNumber = uint256(
-            keccak256(
-                abi.encodePacked(
-                    block.difficulty, // can actually be manipulated by the miners!
-                    block.timestamp, // timestamp is predictable
-                    lotteryPlayers // lottery players
-                )
-            )
-        );
-
-        uint256 indexOfWinner = randomNumber % lotteryPlayers.length;
-
-        // transfer avax token
-        _safeTransferAvax(lotteryPlayers[indexOfWinner], address(this).balance);
-
-        // transfer all pay token
-        IERC20(payToken).safeTransfer(
-            lotteryPlayers[indexOfWinner],
-            IERC20(payToken).balanceOf((address(this)))
-        );
-
-        // change lottery status
-        lotteries[currentLotteryId].status = LOTTERY_STATE.CLOSED;
-        lotteries[currentLotteryId].winner = lotteryPlayers[indexOfWinner];
+        _drawWinners(_lotteryId);
 
         emit LotteryEnded(msg.sender, _lotteryId, block.timestamp);
 
@@ -174,12 +159,48 @@ contract Lottery is Ownable {
     }
 
     /**
-     * @notice Transfer avax
-     * @param _to     receipnt address
-     * @param _value  amount
+     * @notice Draw 3 winners
+    /// @param _lotteryId lottery id
      */
-    function _safeTransferAvax(address _to, uint256 _value) internal {
-        (bool success, ) = payable(_to).call{value: _value}(new bytes(0));
-        require(success, "SafeTransferAvax: Avax transfer failed");
+    function _drawWinners(uint256 _lotteryId) internal {
+        address[] memory lotteryPlayers = lotteries[_lotteryId].players;
+        // it's increased when same random number is generated
+        uint256 pIdx;
+
+        for (uint256 i = 0; i < 3; i++) {
+            uint256 indexOfWinner;
+            while (true) {
+                // get random number
+                uint256 randomNumber = uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            block.difficulty, // can actually be manipulated by the miners!
+                            block.timestamp, // timestamp is predictable
+                            lotteryPlayers, // lottery players
+                            pIdx
+                        )
+                    )
+                );
+
+                indexOfWinner = randomNumber % lotteryPlayers.length;
+
+                if (!_winnerSelected[_lotteryId][indexOfWinner]) {
+                    _winnerSelected[_lotteryId][indexOfWinner] = true;
+                    break;
+                }
+                pIdx++;
+            }
+
+            // transfer reward token to winners
+            IERC20(payToken).safeTransferFrom(
+                treasury,
+                lotteryPlayers[indexOfWinner],
+                rewardAmounts[i]
+            );
+            lotteries[_lotteryId].winners.push(lotteryPlayers[indexOfWinner]);
+        }
+
+        // change lottery status
+        lotteries[currentLotteryId].status = LOTTERY_STATE.CLOSED;
     }
 }
