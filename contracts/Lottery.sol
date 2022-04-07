@@ -26,6 +26,7 @@ contract Lottery is Ownable, ReentrancyGuard {
     uint256 public minAmount;
     uint256[] public rewardAmounts;
     address public treasury;
+    address public rewardDistributor;
 
     /// @dev current active lottery id
     uint256 public currentLotteryId;
@@ -57,20 +58,27 @@ contract Lottery is Ownable, ReentrancyGuard {
     /// @param _payToken address of pay token
     /// @param _minAmount minimum amount of pay token
     /// @param _treasury address of treasury
+    /// @param _rewardDistributor address of rewardDistributor
     /// @param _rewardAmounts array of reward amount for 1st, 2nd and 3rd winners
     constructor(
         address _payToken,
         uint256 _minAmount,
         address _treasury,
+        address _rewardDistributor,
         uint256[] memory _rewardAmounts
     ) {
         require(_payToken != address(0), "Error: payToken address is zero");
         require(_treasury != address(0), "Error: treasury address is zero");
+        require(
+            _rewardDistributor != address(0),
+            "Error: rewardDistributor address is zero"
+        );
         require(_rewardAmounts.length == 3, "Error: winners are only 3");
 
         payToken = _payToken;
         minAmount = _minAmount;
         treasury = _treasury;
+        rewardDistributor = _rewardDistributor;
         rewardAmounts = _rewardAmounts;
 
         currentLotteryId = 0;
@@ -159,6 +167,21 @@ contract Lottery is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Change rewardDistributor address
+     * @param _rewardDistributor  address of rewardDistributor
+     */
+    function changeRewardDistributor(address _rewardDistributor)
+        external
+        onlyOwner
+    {
+        require(
+            _rewardDistributor != address(0),
+            "Error: rewardDistributor address is zero"
+        );
+        rewardDistributor = _rewardDistributor;
+    }
+
+    /**
      * @notice Draw 3 winners
     /// @param _lotteryId lottery id
      */
@@ -193,7 +216,7 @@ contract Lottery is Ownable, ReentrancyGuard {
 
             // transfer reward token to winners
             IERC20(payToken).safeTransferFrom(
-                treasury,
+                rewardDistributor,
                 lotteryPlayers[indexOfWinner],
                 rewardAmounts[i]
             );
