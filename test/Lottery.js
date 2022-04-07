@@ -159,4 +159,20 @@ describe('Lottery contract test:', () => {
       expect(await lottery.currentLotteryId()).to.be.equal(currentLotteryId.add(1));
     });
   });
+
+  describe('changeMinPayTokenAmount function test', () => {
+    it('should be reverted when caller is not the owner', async () => {
+      // execute transaction
+      const minAmount = await lottery.minAmount();
+      const newMinAmount = "200000000000000000000";
+      await expect(lottery.connect(account1).changeMinPayTokenAmount(newMinAmount)).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+
+    it('should be succeeded when caller is the owner', async () => {
+      const newMinAmount = "200000000000000000000";
+      // execute transaction
+      await lottery.connect(owner).changeMinPayTokenAmount(newMinAmount);
+      expect(await lottery.minAmount()).to.be.equal(newMinAmount);
+    });
+  });
 });

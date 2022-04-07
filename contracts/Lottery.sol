@@ -148,6 +148,14 @@ contract Lottery is Ownable {
     }
 
     /**
+     * @notice Change minimum amount of payToken to enter lottery
+     * @param _minAmount     amount of minAmount
+     */
+    function changeMinPayTokenAmount(uint256 _minAmount) external onlyOwner {
+        minAmount = _minAmount;
+    }
+
+    /**
      * @notice Transfer avax
      * @param _to     receipnt address
      * @param _value  amount
