@@ -25,6 +25,8 @@ contract Lottery is Ownable {
     address public payToken;
     uint256 public minAmount;
 
+    address public treasury;
+
     /// @dev current active lottery id
     uint256 public currentLotteryId;
 
@@ -51,10 +53,17 @@ contract Lottery is Ownable {
     /// @dev Construct Lottery contract
     /// @param _payToken address of pay token
     /// @param _minAmount minimum amount of pay token
-    constructor(address _payToken, uint256 _minAmount) {
-        require(_payToken != address(0), "Error: zero address");
+    /// @param _treasury address of treasury
+    constructor(
+        address _payToken,
+        uint256 _minAmount,
+        address _treasury
+    ) {
+        require(_payToken != address(0), "Error: payToken address is zero");
+        require(_treasury != address(0), "Error: treasury address is zero");
         payToken = _payToken;
         minAmount = _minAmount;
+        treasury = _treasury;
         currentLotteryId = 0;
     }
 
@@ -97,7 +106,7 @@ contract Lottery is Ownable {
         );
 
         // transfer payToken from user to lottery
-        IERC20(payToken).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(payToken).safeTransferFrom(msg.sender, treasury, _amount);
 
         lotteries[_lotteryId].players.push(msg.sender);
 
@@ -153,6 +162,15 @@ contract Lottery is Ownable {
      */
     function changeMinPayTokenAmount(uint256 _minAmount) external onlyOwner {
         minAmount = _minAmount;
+    }
+
+    /**
+     * @notice Change treasury address
+     * @param _treasury  address of treasury
+     */
+    function changeTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Error: treasury address is zero");
+        treasury = _treasury;
     }
 
     /**
