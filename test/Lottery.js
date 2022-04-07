@@ -8,10 +8,6 @@ describe('Lottery contract test:', () => {
   let payTokenFactory;
   let payToken;
 
-  // accounts
-  let account1;
-  let account2;
-
   // lottery constructor params
   let lotteryPayTokenAddr;
   let lotteryPayTokenMinAmount;
