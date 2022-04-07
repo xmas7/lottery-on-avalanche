@@ -54,12 +54,14 @@ contract Lottery is Ownable, ReentrancyGuard {
         uint256 timestamp
     );
 
-    /// @dev Construct Lottery contract
-    /// @param _payToken address of pay token
-    /// @param _minAmount minimum amount of pay token
-    /// @param _treasury address of treasury
-    /// @param _rewardDistributor address of rewardDistributor
-    /// @param _rewardAmounts array of reward amount for 1st, 2nd and 3rd winners
+    /**
+     * @dev Construct Lottery contract
+     * @param _payToken address of pay token
+     * @param _minAmount minimum amount of pay token
+     * @param _treasury address of treasury
+     * @param _rewardDistributor address of rewardDistributor
+     * @param _rewardAmounts array of reward amount for 1st, 2nd and 3rd winners
+     */
     constructor(
         address _payToken,
         uint256 _minAmount,
@@ -84,7 +86,9 @@ contract Lottery is Ownable, ReentrancyGuard {
         currentLotteryId = 0;
     }
 
-    /// @dev Create lottry only from owner
+    /**
+     * @dev Create lottry only from owner
+     */
     function getLotteryInfo(uint256 _lotteryId)
         public
         view
@@ -93,7 +97,9 @@ contract Lottery is Ownable, ReentrancyGuard {
         return lotteries[_lotteryId];
     }
 
-    /// @dev Create lottry only from owner
+    /**
+     * @dev Create lottry only from owner
+     */
     function createLottery() public onlyOwner {
         require(
             currentLotteryId == 0 ||
@@ -108,9 +114,11 @@ contract Lottery is Ownable, ReentrancyGuard {
         emit LotteryCreated(msg.sender, currentLotteryId, block.timestamp);
     }
 
-    /// @dev Enter lottery
-    /// @param _lotteryId lottery id
-    /// @param _amount amount of pay token
+    /**
+     * @dev Enter lottery
+     * @param _lotteryId lottery id
+     * @param _amount amount of pay token
+     */
     function enterLottery(uint256 _lotteryId, uint256 _amount) public {
         require(
             lotteries[_lotteryId].status == LOTTERY_STATE.ACTIVE,
@@ -130,17 +138,21 @@ contract Lottery is Ownable, ReentrancyGuard {
         emit LotteryEntered(msg.sender, _lotteryId, _amount, block.timestamp);
     }
 
-    /// @dev End lottery and choose winner by only owner
-    /// @param _lotteryId lottery id
+    /**
+     * @dev End lottery and choose winner by only owner
+     * @param _lotteryId lottery id
+     */
     function endLottery(uint256 _lotteryId) public onlyOwner nonReentrant {
-        address[] memory lotteryPlayers = lotteries[_lotteryId].players;
-
         require(
             lotteries[_lotteryId].status == LOTTERY_STATE.ACTIVE,
             "Lottery is not active"
         );
-        require(lotteryPlayers.length > 2, "Error: less than 3 participants");
+        require(
+            lotteries[_lotteryId].players.length > 2,
+            "Error: less than 3 participants"
+        );
 
+        // choose winners
         _drawWinners(_lotteryId);
 
         emit LotteryEnded(msg.sender, _lotteryId, block.timestamp);
@@ -183,7 +195,7 @@ contract Lottery is Ownable, ReentrancyGuard {
 
     /**
      * @notice Draw 3 winners
-    /// @param _lotteryId lottery id
+     * @param _lotteryId lottery id
      */
     function _drawWinners(uint256 _lotteryId) internal {
         address[] memory lotteryPlayers = lotteries[_lotteryId].players;
